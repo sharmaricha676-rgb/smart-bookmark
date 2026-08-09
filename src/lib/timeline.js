@@ -93,6 +93,36 @@ export const MOODS = [
   { p: 1.0, fog: '#020304', density: 0.045, ambient: '#1a2740', ambientI: 0.35 },
 ];
 
+/**
+ * Maps timeline progress onto the camera curve.
+ *
+ * Keyframes sit at evenly spaced parameters along the Catmull-Rom curve, but
+ * they are authored at uneven scroll positions — this is what reconciles the
+ * two, so a keyframe always lands on exactly the progress it was written for
+ * while the path itself stays smooth. Roll and field of view ride along.
+ *
+ * Pure and dependency-free so it can be reasoned about (and tested) on its own.
+ */
+export function sampleCameraTrack(p, ease = (t) => t * t * (3 - 2 * t)) {
+  const n = CAMERA_KEYS.length;
+  for (let i = 0; i < n - 1; i++) {
+    const a = CAMERA_KEYS[i];
+    const b = CAMERA_KEYS[i + 1];
+    if (p <= b.p || i === n - 2) {
+      const raw = (p - a.p) / (b.p - a.p || 1e-6);
+      const t = raw < 0 ? 0 : raw > 1 ? 1 : raw;
+      const eased = ease(t);
+      return {
+        u: (i + eased) / (n - 1),
+        roll: a.roll + (b.roll - a.roll) * eased,
+        fov: a.fov + (b.fov - a.fov) * eased,
+      };
+    }
+  }
+  const last = CAMERA_KEYS[n - 1];
+  return { u: 1, roll: last.roll, fov: last.fov };
+}
+
 export const sceneIndexAt = (p) => {
   for (let i = SCENES.length - 1; i >= 0; i--) {
     if (p >= SCENES[i].start) return i;

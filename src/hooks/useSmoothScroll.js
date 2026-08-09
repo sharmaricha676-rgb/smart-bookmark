@@ -29,8 +29,10 @@ export function useSmoothScroll() {
     const spacer = document.getElementById('scroll-spacer');
     if (!spacer) return undefined;
 
+    // `lerp` and `duration` are mutually exclusive in Lenis — passing both
+    // makes it warn and ignore one. Framerate-independent lerp is the right
+    // one here, since everything downstream is damped the same way.
     const lenis = new Lenis({
-      duration: 1.15,
       lerp: 0.09,
       smoothWheel: true,
       wheelMultiplier: 0.9,
@@ -59,17 +61,23 @@ export function useSmoothScroll() {
       const p = y / metricsRef.current.denom;
       setRawProgress(p);
       if (p > 0.004) markScrolled();
-      setSceneIndex(sceneIndexAt(scroll.smooth));
     };
 
     lenis.on('scroll', onScroll);
     measure();
 
+    // The damped value keeps settling after the last scroll event, so the scene
+    // index is derived here rather than in the scroll handler — but the store is
+    // only touched when it actually changes, never per frame.
+    let currentScene = -1;
     let raf = 0;
     const tick = (time) => {
       lenis.raf(time);
-      // keep the scene index in step even when momentum has stopped firing events
-      setSceneIndex(sceneIndexAt(scroll.smooth));
+      const next = sceneIndexAt(scroll.smooth);
+      if (next !== currentScene) {
+        currentScene = next;
+        setSceneIndex(next);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

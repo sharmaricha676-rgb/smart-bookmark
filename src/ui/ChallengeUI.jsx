@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useStore } from '../state/store.js';
-import { CHALLENGE_LINES } from '../lib/textures.js';
+import { CHALLENGE_LINES } from '../lib/challenge.js';
 import { onScrollTick } from '../lib/scroll.js';
+import { GATE_PROGRESS } from '../lib/timeline.js';
 
 const IDLE = 'Six lines. One of them is the reason the other five were written.';
+const AT_GATE =
+  'Six lines. One of them is the reason the other five were written — the journey waits here until you pick.';
 const SOLVED_HINT = 'Scroll on — the bookmark has it now.';
 
 /**
@@ -21,11 +24,13 @@ export function ChallengeUI() {
   const skipChallenge = useStore((s) => s.skipChallenge);
 
   const [visible, setVisible] = useState(false);
+  const [atGate, setAtGate] = useState(false);
   const shown = useRef(false);
+  const gated = useRef(false);
   const root = useRef();
   const sub = useRef();
 
-  // Only touch React when the band is actually crossed, not on every frame.
+  // Only touch React when a band is actually crossed, not on every frame.
   useEffect(
     () =>
       onScrollTick((p) => {
@@ -33,6 +38,13 @@ export function ChallengeUI() {
         if (shouldShow !== shown.current) {
           shown.current = shouldShow;
           setVisible(shouldShow);
+        }
+        // The page runs out of height at the gate; say so, otherwise the stop
+        // reads as the site having ended.
+        const isGated = p > GATE_PROGRESS - 0.006;
+        if (isGated !== gated.current) {
+          gated.current = isGated;
+          setAtGate(isGated);
         }
       }),
     []
@@ -57,7 +69,7 @@ export function ChallengeUI() {
 
   const picked = CHALLENGE_LINES[lastPick];
   let tone = 'idle';
-  let message = IDLE;
+  let message = atGate ? AT_GATE : IDLE;
   if (gameState === 'wrong' && picked) {
     tone = 'wrong';
     message = picked.note;

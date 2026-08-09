@@ -1,8 +1,8 @@
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { CAMERA_KEYS } from '../lib/timeline.js';
-import { clamp, lerp, smoothstep, damp } from '../lib/math.js';
+import { CAMERA_KEYS, sampleCameraTrack } from '../lib/timeline.js';
+import { clamp, smoothstep, damp } from '../lib/math.js';
 import { scroll } from '../lib/scroll.js';
 import { pointer, updatePointer } from '../hooks/usePointer.js';
 
@@ -41,25 +41,7 @@ export function CameraRig() {
   }, []);
 
   /** Timeline progress -> curve parameter, honouring each keyframe's own `p`. */
-  const mapping = useMemo(() => {
-    const n = CAMERA_KEYS.length;
-    return (p) => {
-      for (let i = 0; i < n - 1; i++) {
-        const a = CAMERA_KEYS[i];
-        const b = CAMERA_KEYS[i + 1];
-        if (p <= b.p || i === n - 2) {
-          const t = clamp((p - a.p) / (b.p - a.p || 1e-6));
-          const eased = smoothstep(t);
-          return {
-            u: (i + eased) / (n - 1),
-            roll: lerp(a.roll, b.roll, eased),
-            fov: lerp(a.fov, b.fov, eased),
-          };
-        }
-      }
-      return { u: 1, roll: 0, fov: CAMERA_KEYS[n - 1].fov };
-    };
-  }, []);
+  const mapping = useMemo(() => (p) => sampleCameraTrack(p, smoothstep), []);
 
   useFrame((state, dt) => {
     updatePointer(dt);

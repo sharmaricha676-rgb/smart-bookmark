@@ -570,6 +570,48 @@ html.lenis body {
 }
 
 /* --------------------------------------------------------------------------
+   Failure states
+   -------------------------------------------------------------------------- */
+
+.stage-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--edge);
+  background: radial-gradient(120% 90% at 50% 20%, #0d1018 0%, #05060a 60%, #020306 100%);
+}
+
+.stage-fallback-inner {
+  max-width: 34rem;
+  text-align: center;
+}
+
+.stage-fallback-title {
+  margin: 1.4rem 0 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.stage-fallback-detail {
+  margin: 1.2rem 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: #f0b6a4;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
 

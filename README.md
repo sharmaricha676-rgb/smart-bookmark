@@ -20,13 +20,26 @@ Then open the URL Vite prints (usually `http://localhost:5173`).
 ```bash
 npm run build     # production build into dist/
 npm run preview   # serve the production build
+npm run verify    # sanity-check the timeline (no browser needed)
 ```
 
-Requires Node 18+ and a browser with WebGL 2.
+`npm run verify` executes `scripts/verify-timeline.mjs` against the real timeline and challenge
+modules — both are pure ES modules with no Three.js or DOM dependency, so the spine of the whole
+experience can be checked in plain Node. It asserts that the scene windows are contiguous, that the
+camera mapping is monotonic and free of discontinuities, that every keyframe lands on the progress it
+was authored for, that the gate sits inside the challenge, and that the challenge has exactly one
+answer with non-overlapping hit-zones that fall inside the page.
+
+Requires **Node 18.18 or newer** and a browser with WebGL 2. Nothing else — there are no API keys,
+environment variables or binary assets.
+
+If something goes wrong it will say so on screen rather than showing a black page: a missing WebGL
+context and any error thrown inside the 3D stage both render a readable card, with the full stack
+trace in the console.
 
 > **Note on the first install:** the project was authored in a sandbox whose network policy blocks
-> `registry.npmjs.org`, so `npm install` could not be executed there. Nothing in the source depends
-> on that environment — run the two commands above on any normal machine and it builds and runs.
+> `registry.npmjs.org` and every package CDN, so `npm install` could not be executed there. Nothing
+> in the source depends on that environment — run the two commands above on any normal machine.
 
 ---
 

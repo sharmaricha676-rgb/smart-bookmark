@@ -3,7 +3,13 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Bookmark } from '../objects/Bookmark.jsx';
 import { Dust } from '../objects/Dust.jsx';
-import { challengePage, CHALLENGE_LINES, CHALLENGE_LAYOUT } from '../../lib/textures.js';
+import { challengePage } from '../../lib/textures.js';
+import {
+  CHALLENGE_LINES,
+  CHALLENGE_LAYOUT,
+  CORRECT_INDEX,
+  bandBounds,
+} from '../../lib/challenge.js';
 import { useStore } from '../../state/store.js';
 import { useQuality } from '../../hooks/useTier.js';
 import { scroll } from '../../lib/scroll.js';
@@ -37,18 +43,19 @@ export function MiniGameScene() {
 
   const pageTex = useMemo(() => challengePage(), []);
 
-  /** Convert the texture's pixel layout into local plane coordinates. */
+  /**
+   * Convert the texture's pixel layout into local plane coordinates. Both the
+   * printed page and these hit-zones come from `bandBounds`, so they cannot
+   * drift apart when the passage is rewritten.
+   */
   const bands = useMemo(() => {
-    const { height, top, lineHeight, bandHeight, bandOffset } = CHALLENGE_LAYOUT;
-    return CHALLENGE_LINES.map((line, i) => {
-      const centrePx = top + i * lineHeight + bandOffset;
-      return {
-        ...line,
-        index: i,
-        y: ((height / 2 - centrePx) / height) * PAGE_H,
-        h: (bandHeight / height) * PAGE_H,
-      };
-    });
+    const { height, bandHeight } = CHALLENGE_LAYOUT;
+    return CHALLENGE_LINES.map((line, i) => ({
+      ...line,
+      index: i,
+      y: ((height / 2 - bandBounds(i).centre) / height) * PAGE_H,
+      h: (bandHeight / height) * PAGE_H,
+    }));
   }, []);
 
   const isLive = () => {
@@ -140,7 +147,7 @@ export function MiniGameScene() {
     // The bookmark arrives and clips onto the answer.
     if (bookmarkRef.current) {
       const land = solved ? easeOutCubic(clamp(since / 1.25)) : 0;
-      const band = bands[st.lastPick] ?? bands[2];
+      const band = bands[st.lastPick] ?? bands[CORRECT_INDEX];
       bookmarkRef.current.visible = land > 0.001;
       bookmarkRef.current.position.set(
         lerp(0.95, -PAGE_W / 2 + 0.075, land),
@@ -153,7 +160,7 @@ export function MiniGameScene() {
 
     if (successRing.current?.material) {
       const s = solved ? clamp(since / 1.4) : 0;
-      const band = bands[st.lastPick] ?? bands[2];
+      const band = bands[st.lastPick] ?? bands[CORRECT_INDEX];
       successRing.current.position.y = band.y;
       successRing.current.scale.setScalar(0.15 + easeOutCubic(s) * 3.4);
       successRing.current.material.opacity = s > 0 && s < 1 ? (1 - easeOutCubic(s)) * 0.5 : 0;
