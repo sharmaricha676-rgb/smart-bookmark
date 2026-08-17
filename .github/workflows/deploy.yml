@@ -8,17 +8,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: smart-bookmark-pages
   cancel-in-progress: true
 
 jobs:
-  # Always runs. This is the real compile — if anything in the project is
-  # broken, it fails here with a readable log.
   build:
     runs-on: ubuntu-latest
     steps:
@@ -28,41 +24,60 @@ jobs:
         with:
           node-version: '22'
 
+      # No lockfile is committed, so `npm install` rather than `npm ci`.
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
       - name: Verify the timeline
         run: npm run verify
 
-      - name: Build
+      # ---- the hosted site -------------------------------------------------
+      - name: Build for GitHub Pages
         run: npm run build
         env:
-          # Project pages are served from /<repo>/, so assets need that prefix.
           VITE_BASE: /smart-bookmark/
 
-      - name: Report build output
-        run: |
-          echo "--- dist ---"
-          ls -lhR dist
-          echo "--- total ---"
-          du -sh dist
-
-      # A single-page app on Pages needs a 404 that serves the app shell,
-      # otherwise a refresh on any deep link 404s.
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      # ---- the double-clickable single file --------------------------------
+      - name: Build the standalone file
+        run: npm run build:single
 
-  # Separate job so a Pages-not-enabled failure never hides the build result.
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Report output
+        run: |
+          echo "--- dist ---"; ls -lh dist
+          echo "--- standalone ---"; ls -lh dist-single/smart-bookmark.html
+
+      # Downloadable from the run page: unzip and open, no tooling needed.
+      - name: Upload the standalone file
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-bookmark-standalone
+          path: dist-single/smart-bookmark.html
+          if-no-files-found: error
+
+      - name: Upload the site
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-bookmark-site
+          path: dist
+          if-no-files-found: error
+
+      # Publishing by pushing a branch rather than through the Pages
+      # environment, because that environment is restricted to the default
+      # branch by default and this work lives on a feature branch.
+      - name: Publish to the gh-pages branch
+        run: |
+          cp dist-single/smart-bookmark.html dist/standalone.html
+          cd dist
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          touch .nojekyll
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7}"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "Published. Enable Pages once at Settings -> Pages -> Source: Deploy from a branch -> gh-pages / root."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

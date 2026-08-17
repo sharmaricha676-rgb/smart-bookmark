@@ -18,10 +18,25 @@ npm run dev
 Then open the URL Vite prints (usually `http://localhost:5173`).
 
 ```bash
-npm run build     # production build into dist/
-npm run preview   # serve the production build
-npm run verify    # sanity-check the timeline (no browser needed)
+npm run build         # production build into dist/
+npm run build:single  # one self-contained HTML file you can double-click
+npm run preview       # serve the production build
+npm run verify        # sanity-check the timeline (no browser needed)
 ```
+
+### Three ways to see it
+
+1. **`npm run dev`** — the normal path, with hot reload.
+2. **No tooling at all** — open the repository's **Actions** tab, click the latest run, and download
+   the `smart-bookmark-standalone` artifact. Unzip it and double-click `smart-bookmark.html`. It is a
+   single file with the entire app inlined — no server, no npm, no network.
+3. **Hosted** — CI publishes to the `gh-pages` branch on every push. Enable it once at
+   _Settings → Pages → Source: Deploy from a branch → `gh-pages` / root_, and the site is live at
+   `https://<user>.github.io/smart-bookmark/`.
+
+`npm run build:single` produces option 2 locally. It bundles as a classic script rather than an ES
+module, because browsers refuse module scripts over `file://` — that is what lets the file work when
+opened straight from disk. The build fails loudly if any external reference survives inlining.
 
 `npm run verify` executes `scripts/verify-timeline.mjs` against the real timeline and challenge
 modules — both are pure ES modules with no Three.js or DOM dependency, so the spine of the whole
