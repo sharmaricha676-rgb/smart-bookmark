@@ -1,0 +1,13 @@
+{
+  "name": "Smart Bookmark",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "npm install --no-audit --no-fund",
+  "postAttachCommand": "npm run dev",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Smart Bookmark",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}
